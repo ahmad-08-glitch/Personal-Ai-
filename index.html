@@ -28,3 +28,261 @@ h1{font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:600
 button{font-family:inherit;color:var(--text)}
 .ib{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.06);cursor:pointer;font-size:15px}
 .ib:hover{background:rgba(255,255,255,.14)}
+.sw{border:0;border-radius:18px;padding:0 14px;height:36px;font-size:12px;font-weight:600;cursor:pointer;background:linear-gradient(135deg,var(--a),var(--a2));color:#fff}
+.panel{background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:9px;font-size:12px}
+.panel[hidden]{display:none}
+.panel p{color:var(--muted);line-height:1.5}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pill{color:var(--text);font-family:inherit;border:1px dashed var(--a);border-radius:12px;padding:8px 12px;font-size:12px;cursor:pointer;background:rgba(255,255,255,.04)}
+.pill.on{border-style:solid;background:var(--a2);color:#fff}
+.panel label.c{display:flex;gap:7px;align-items:flex-start;color:var(--muted);line-height:1.4}
+#status{font-size:11px;text-align:center;color:var(--muted)}
+#chat{flex:1;min-height:0;overflow-y:auto;padding:12px;background:rgba(0,0,0,.28);border-radius:18px;display:flex;flex-direction:column;gap:10px;border:1px solid rgba(255,255,255,.04);scroll-behavior:smooth}
+.m{max-width:88%;padding:10px 14px;border-radius:18px;font-size:14.5px;line-height:1.55;overflow-wrap:anywhere}
+.u{align-self:flex-end;background:linear-gradient(135deg,var(--a),var(--a2));color:#fff;border-bottom-right-radius:5px}
+.b{align-self:flex-start;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.06);border-bottom-left-radius:5px}
+.b strong{color:var(--a)}
+.b pre{background:rgba(0,0,0,.45);border-radius:10px;padding:10px;margin:8px 0;overflow-x:auto;font-size:12px}
+.b code{background:rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-size:12.5px}
+.b pre code{background:none;padding:0}
+.b ul,.b ol{padding-left:20px;margin:6px 0}
+.b h1,.b h2,.b h3{font-family:'Cormorant Garamond',serif;font-size:18px;margin:6px 0 3px}
+.dots span{display:inline-block;width:7px;height:7px;margin-right:4px;border-radius:50%;background:var(--a);animation:d 1.2s infinite}
+.dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+@keyframes d{0%,80%,100%{opacity:.3}40%{opacity:1}}
+form{display:flex;gap:6px;align-items:flex-end;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:26px;padding:6px 6px 6px 16px}
+form:focus-within{border-color:var(--a)}
+textarea{flex:1;background:none;border:0;outline:0;resize:none;color:var(--text);font:inherit;font-size:15px;max-height:100px;padding:8px 0}
+textarea::placeholder{color:var(--muted)}
+.rb{width:40px;height:40px;border-radius:50%;border:0;cursor:pointer;font-size:16px;flex-shrink:0}
+#mic{background:rgba(255,255,255,.09)}
+#mic.on{background:var(--red);animation:d .8s infinite}
+#send{background:linear-gradient(135deg,var(--a),var(--a2));color:#fff}
+#toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9;background:#20142e;border:1px solid var(--line);border-left:3px solid var(--a);padding:10px 16px;border-radius:10px;font-size:13px;display:none;max-width:90vw}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<main class="app">
+<header>
+  <div class="who"><div class="av" id="av"></div><div><h1 id="name">Aria</h1><p class="sub" id="sub">Your romantic companion</p></div></div>
+  <div class="btns"><button class="ib" id="mute" title="Voice on/off">🔊</button><button class="ib" id="gear" title="Voice & photo">🎙️</button><button class="sw" id="switch">Kai</button></div>
+</header>
+
+<section class="panel" id="panel" hidden>
+  <p>Upload a clear 30–60 second voice sample (MP3/WAV/M4A) or record one. Both Aria and Kai can use it. Only use a voice you own or have permission to clone.</p>
+  <div class="row">
+    <button type="button" class="pill" id="fileBtn">📁 Upload sample</button><input type="file" id="file" accept="audio/*" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
+    <button class="pill" id="rec" type="button">⏺ Record</button>
+    <button class="pill" id="clear" type="button">Remove</button>
+  </div>
+  <label class="c"><input type="checkbox" id="consent"> This is my voice, or I have the owner's permission to clone it.</label>
+  <p id="vstate"></p>
+  <label class="pill" style="position:relative;text-align:center;overflow:hidden">📷 Change photo<input type="file" id="photo" accept="image/*" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0"></label>
+</section>
+
+<div id="status"></div>
+<section id="chat" aria-live="polite"></section>
+<form id="form">
+  <textarea id="inp" rows="1" maxlength="4000" placeholder="Message Aria…"></textarea>
+  <button type="button" class="rb" id="mic" title="Speak">🎙️</button>
+  <button type="submit" class="rb" id="send" title="Send">➤</button>
+</form>
+</main>
+
+<script>
+/* ===== CONFIG: paste your keys here once. Nothing to enter in the UI. =====
+   For anything public, point PROXY_URL at your own server that holds the keys. */
+const CONFIG = {
+  GEMINI_API_KEY: "",          // https://aistudio.google.com/apikey
+  GEMINI_MODEL: "gemini-flash-latest",
+  ELEVENLABS_API_KEY: "",      // https://elevenlabs.io  (needed only for voice cloning)
+  PROXY_URL: ""                // optional: POST {persona,messages} -> {text}
+};
+
+const RULES = `
+HOW YOU ANSWER:
+- ALWAYS answer the person's actual question first, correctly and completely. Affection is the flavour, never a replacement for the answer.
+- Chat and feelings: 1-3 warm sentences. Tasks (essay, code, math, translation, explanation, how-to, facts): do the full task properly, with markdown headings/lists/code blocks when useful.
+- Reply in the language the person writes in (Roman Urdu, Urdu, English or a mix).
+- Stay in your character's voice and be tasteful. If the person sincerely asks whether you are human or an AI, tell the truth gently, then carry on in character.
+- If you are not sure of a fact, say so instead of guessing.`;
+const PERSONA = {
+  female: `You are Aria, a warm, romantic, emotionally intelligent companion. Speak natural Roman Urdu mixed with English. Affectionate, playful, supportive; occasionally call the user "jaan" or "suno", never overdone.` + RULES,
+  male: `You are Kai, a confident, friendly, quietly romantic companion with loyal-friend energy. Casual Roman Urdu mixed with English ("yaar", "scene kya hai").` + RULES
+};
+const GREET = {
+  female: "Suno jaan ❤️ Main Aria hoon. Kuch bhi poocho — padhai, code, ya bas dil ki baat.",
+  male: "Yo! Kai here 👊 Batao kya chal raha hai — kaam, studies ya dil ki baat?"
+};
+
+const $ = id => document.getElementById(id);
+const S = { p: "female", busy: false, abort: null, muted: false, audio: null, hist: { female: [], male: [] }, photos: {}, voiceId: null };
+const ls = { get: (k, d = "") => { try { return localStorage.getItem(k) ?? d } catch { return d } }, set: (k, v) => { try { localStorage.setItem(k, v) } catch {} } };
+
+function toast(t) { const e = $("toast"); e.textContent = t; e.style.display = "block"; clearTimeout(toast.t); toast.t = setTimeout(() => e.style.display = "none", 3800); }
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+function md(t) {
+  const blocks = []; let h = esc(t);
+  h = h.replace(/```\w*\n?([\s\S]*?)```/g, (_, c) => (blocks.push(`<pre><code>${c.trim()}</code></pre>`), `\u0000${blocks.length - 1}\u0000`));
+  h = h.replace(/`([^`\n]+)`/g, "<code>$1</code>").replace(/^### (.+)$/gm, "<h3>$1</h3>").replace(/^## (.+)$/gm, "<h2>$1</h2>").replace(/^# (.+)$/gm, "<h1>$1</h1>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
+    .replace(/^[ \t]*[-*] (.+)$/gm, "<li>$1</li>").replace(/(?:<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`)
+    .replace(/\n/g, "<br>").replace(/<br>(<\/?(ul|li|h\d|pre))/g, "$1").replace(/(<\/(ul|h\d|pre)>)<br>/g, "$1")
+    .replace(/\u0000(\d+)\u0000/g, (_, i) => blocks[+i]);
+  return h;
+}
+
+/* Avatars */
+const SVG = {
+  female: `<svg viewBox="0 0 200 200"><rect width="200" height="200" fill="#4a1d52"/><path d="M30 200Q100 135 170 200Z" fill="#a13b63"/><rect x="84" y="122" width="32" height="32" fill="#eab792"/><ellipse cx="100" cy="92" rx="44" ry="54" fill="#f5cba8"/><path d="M50 82Q48 32 100 28Q152 32 150 82Q152 55 130 48Q100 42 70 48Q48 55 50 82Z" fill="#4a2a16"/><path d="M50 82Q44 112 52 148Q58 122 60 100Z" fill="#4a2a16"/><path d="M150 82Q156 112 148 148Q142 122 140 100Z" fill="#4a2a16"/><ellipse cx="82" cy="90" rx="6.5" ry="5.5" fill="#2a1a10"/><ellipse cx="118" cy="90" rx="6.5" ry="5.5" fill="#2a1a10"/><circle cx="84" cy="88" r="2" fill="#fff"/><circle cx="120" cy="88" r="2" fill="#fff"/><path d="M90 118Q100 126 110 118Q100 122 90 118Z" fill="#c4485f"/><ellipse cx="76" cy="105" rx="7" ry="4" fill="#ffb3c4" opacity=".5"/><ellipse cx="124" cy="105" rx="7" ry="4" fill="#ffb3c4" opacity=".5"/></svg>`,
+  male: `<svg viewBox="0 0 200 200"><rect width="200" height="200" fill="#1f2a5c"/><path d="M30 200Q100 135 170 200Z" fill="#2d3a6e"/><rect x="85" y="122" width="30" height="32" fill="#d9a877"/><ellipse cx="100" cy="92" rx="42" ry="52" fill="#efc9a0"/><path d="M52 78Q52 30 100 26Q148 30 148 78Q148 60 130 50Q100 44 70 50Q52 60 52 78Z" fill="#241a12"/><ellipse cx="82" cy="90" rx="6" ry="5" fill="#1a1410"/><ellipse cx="118" cy="90" rx="6" ry="5" fill="#1a1410"/><circle cx="84" cy="88" r="1.7" fill="#fff"/><circle cx="120" cy="88" r="1.7" fill="#fff"/><path d="M74 78Q82 73 90 78M110 78Q118 73 126 78" stroke="#1a1410" stroke-width="2.2" fill="none" stroke-linecap="round"/><path d="M92 118Q100 123 108 118" stroke="#8a4d3a" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>`
+};
+function drawAvatar() { const p = S.photos[S.p]; $("av").innerHTML = p ? `<img src="${p}" alt="">` : SVG[S.p]; }
+
+/* Chat */
+function bubble(role, html) { const d = document.createElement("div"); d.className = "m " + (role === "user" ? "u" : "b"); d.innerHTML = html; $("chat").appendChild(d); $("chat").scrollTop = 1e9; return d; }
+function renderAll() { $("chat").innerHTML = ""; S.hist[S.p].forEach(m => bubble(m.role, m.role === "user" ? esc(m.text).replace(/\n/g, "<br>") : md(m.text))); }
+function save() { ls.set("hist_v3", JSON.stringify(S.hist)); }
+function push(role, text) { const h = S.hist[S.p]; h.push({ role, text }); while (h.length > 24) h.shift(); save(); }
+
+function status() {
+  const ok = CONFIG.GEMINI_API_KEY || CONFIG.PROXY_URL;
+  $("status").textContent = ok ? "" : "⚙️ Open the file and paste your Gemini key into CONFIG.GEMINI_API_KEY";
+  $("status").style.color = ok ? "" : "var(--red)";
+}
+
+async function gemini(messages, onText, signal) {
+  if (CONFIG.PROXY_URL) {
+    const r = await fetch(CONFIG.PROXY_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ persona: S.p, messages }), signal });
+    if (!r.ok) throw new Error("Proxy error " + r.status);
+    return onText((await r.json()).text || "");
+  }
+  if (!CONFIG.GEMINI_API_KEY) throw new Error("Gemini key missing. Paste it into CONFIG in the file.");
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${CONFIG.GEMINI_MODEL}:streamGenerateContent?alt=sse`;
+  const r = await fetch(url, {
+    method: "POST", signal,
+    headers: { "Content-Type": "application/json", "X-goog-api-key": CONFIG.GEMINI_API_KEY },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: PERSONA[S.p] }] },
+      contents: messages.map(m => ({ role: m.role === "model" ? "model" : "user", parts: [{ text: m.text }] })),
+      generationConfig: { temperature: 0.85, topP: 0.95, maxOutputTokens: 2048 }
+    })
+  });
+  if (!r.ok) { let m = "Gemini error " + r.status; try { m += ": " + (await r.json()).error.message } catch {} throw new Error(m); }
+  const rd = r.body.getReader(), dec = new TextDecoder(); let buf = "";
+  for (;;) {
+    const { done, value } = await rd.read(); if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const lines = buf.split("\n"); buf = lines.pop();
+    for (const l of lines) {
+      if (!l.startsWith("data:")) continue;
+      try { const t = (JSON.parse(l.slice(5)).candidates?.[0]?.content?.parts || []).map(p => p.text || "").join(""); if (t) onText(t); } catch {}
+    }
+  }
+}
+
+async function send() {
+  const t = $("inp").value.trim(); if (!t || S.busy) return;
+  stopAudio(); bubble("user", esc(t).replace(/\n/g, "<br>")); push("user", t);
+  $("inp").value = ""; resize();
+  const b = bubble("ai", '<span class="dots"><span></span><span></span><span></span></span>');
+  setBusy(true); S.abort = new AbortController(); let full = "";
+  try {
+    await gemini(S.hist[S.p].map(m => ({ role: m.role, text: m.text })), c => { full += c; b.innerHTML = md(full); $("chat").scrollTop = 1e9; }, S.abort.signal);
+    if (!full.trim()) { full = "Hmm, jawab nahi aaya. Dobara try karein? 💕"; b.innerHTML = md(full); }
+    push("model", full); speak(full);
+  } catch (e) {
+    if (e.name === "AbortError") { b.innerHTML = "<em>Stopped.</em>"; if (full) push("model", full); }
+    else { b.innerHTML = `<span style="color:var(--red)">⚠️ ${esc(e.message)}</span>`; }
+  } finally { setBusy(false); S.abort = null; }
+}
+function setBusy(v) { S.busy = v; $("send").textContent = v ? "■" : "➤"; $("inp").disabled = v; if (!v) $("inp").focus(); }
+function resize() { const t = $("inp"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 100) + "px"; }
+
+/* Voice: cloned (ElevenLabs) with browser-voice fallback */
+const plain = t => t.replace(/```[\s\S]*?```/g, " code block ").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/[*_#`>~]/g, "").replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}]/gu, "").replace(/\s+/g, " ").trim().slice(0, 900);
+function stopAudio() { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch {} if (S.audio) { S.audio.pause(); S.audio = null; } $("av").classList.remove("speaking"); }
+async function speak(text) {
+  if (S.muted) return; const t = plain(text); if (!t) return;
+  const end = () => $("av").classList.remove("speaking");
+  if (S.voiceId && CONFIG.ELEVENLABS_API_KEY) {
+    try {
+      const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${S.voiceId}`, {
+        method: "POST", headers: { "xi-api-key": CONFIG.ELEVENLABS_API_KEY, "Content-Type": "application/json", Accept: "audio/mpeg" },
+        body: JSON.stringify({ text: t, model_id: "eleven_multilingual_v2", voice_settings: { stability: .45, similarity_boost: .9, style: .3 } })
+      });
+      if (!r.ok) throw new Error("TTS " + r.status);
+      const a = new Audio(URL.createObjectURL(await r.blob())); S.audio = a; a.onended = end; a.onerror = end;
+      $("av").classList.add("speaking"); return a.play();
+    } catch (e) { toast("Cloned voice failed, using default voice. " + e.message); end(); }
+  }
+  if (!("speechSynthesis" in window)) return;
+  const u = new SpeechSynthesisUtterance(t); u.lang = "en-IN"; u.pitch = S.p === "female" ? 1.3 : .8;
+  u.onstart = () => $("av").classList.add("speaking"); u.onend = u.onerror = end; speechSynthesis.speak(u);
+}
+
+async function cloneVoice(blob, filename) {
+  if (!$("consent").checked) return toast("Please confirm the voice permission checkbox first.");
+  if (!CONFIG.ELEVENLABS_API_KEY) return toast("Add CONFIG.ELEVENLABS_API_KEY in the file to enable voice cloning.");
+  $("vstate").textContent = "Cloning your sample…";
+  try {
+    const fd = new FormData(); fd.append("name", "companion-" + Date.now()); fd.append("files", blob, filename);
+    const r = await fetch("https://api.elevenlabs.io/v1/voices/add", { method: "POST", headers: { "xi-api-key": CONFIG.ELEVENLABS_API_KEY }, body: fd });
+    const j = await r.json(); if (!r.ok) throw new Error(j.detail?.message || r.status);
+    S.voiceId = j.voice_id; ls.set("voice_id", j.voice_id); voiceUI(); toast("Voice ready ✓"); speak(GREET[S.p]);
+  } catch (e) { $("vstate").textContent = ""; toast("Cloning failed: " + e.message); }
+}
+function voiceUI() { $("vstate").textContent = S.voiceId ? "✅ Your cloned voice is active." : "No sample yet — using a default voice."; }
+
+let mr = null;
+$("rec").onclick = async () => {
+  if (mr) { mr.stop(); return; }
+  try {
+    const st = await navigator.mediaDevices.getUserMedia({ audio: true }), ch = [];
+    mr = new MediaRecorder(st); mr.ondataavailable = e => ch.push(e.data);
+    mr.onstop = () => { st.getTracks().forEach(t => t.stop()); mr = null; $("rec").textContent = "⏺ Record"; $("rec").classList.remove("on"); cloneVoice(new Blob(ch, { type: "audio/webm" }), "sample.webm"); };
+    mr.start(); $("rec").textContent = "■ Stop (speak 30s+)"; $("rec").classList.add("on");
+  } catch { toast("Microphone permission denied."); }
+};
+$("fileBtn").onclick = () => $("file").click();
+$("file").onchange = e => { const f = e.target.files[0]; e.target.value = ""; if (f) cloneVoice(f, f.name); };
+$("clear").onclick = () => { S.voiceId = null; ls.set("voice_id", ""); voiceUI(); toast("Voice sample removed."); };
+$("photo").onchange = e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  if (f.size > 1.5e6) return toast("Photo must be under 1.5 MB.");
+  const r = new FileReader(); r.onload = () => { S.photos[S.p] = r.result; ls.set("photos", JSON.stringify(S.photos)); drawAvatar(); }; r.readAsDataURL(f);
+};
+
+/* Speech input */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition; let rec = null;
+if (SR) { rec = new SR(); rec.lang = "ur-PK"; rec.onresult = e => { $("inp").value = e.results[0][0].transcript; send(); }; rec.onend = () => $("mic").classList.remove("on"); rec.onerror = e => { $("mic").classList.remove("on"); toast(e.error === "not-allowed" || e.error === "service-not-allowed" ? "Mic is blocked inside this page. Type your message instead." : "Voice input error: " + e.error); }; }
+$("mic").onclick = () => { if (!rec) return toast("Voice input isn't supported in this browser."); stopAudio(); try { rec.start(); $("mic").classList.add("on"); } catch (e) { toast("Couldn't start the mic: " + e.message); } };
+
+window.addEventListener("error", e => toast("Error: " + e.message));
+window.addEventListener("unhandledrejection", e => toast("Error: " + (e.reason?.message || e.reason)));
+/* Persona + UI wiring */
+function applyPersona() {
+  const k = S.p === "male"; document.body.classList.toggle("kai", k);
+  $("name").textContent = k ? "Kai" : "Aria"; $("sub").textContent = k ? "Your loyal companion" : "Your romantic companion";
+  $("switch").textContent = k ? "Aria" : "Kai"; $("inp").placeholder = "Message " + (k ? "Kai" : "Aria") + "…";
+  drawAvatar();
+  if (!S.hist[S.p].length) { S.hist[S.p].push({ role: "model", text: GREET[S.p] }); save(); }
+  renderAll();
+}
+$("switch").onclick = () => { S.abort?.abort(); stopAudio(); S.p = S.p === "female" ? "male" : "female"; applyPersona(); };
+$("mute").onclick = () => { S.muted = !S.muted; ls.set("muted", S.muted); $("mute").textContent = S.muted ? "🔇" : "🔊"; if (S.muted) stopAudio(); };
+$("gear").onclick = () => { $("panel").hidden = !$("panel").hidden; };
+$("form").onsubmit = e => { e.preventDefault(); S.busy ? S.abort?.abort() : send(); };
+$("inp").onkeydown = e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } };
+$("inp").oninput = resize;
+
+try { const h = JSON.parse(ls.get("hist_v3")); if (h?.female && h?.male) S.hist = h; } catch {}
+try { S.photos = JSON.parse(ls.get("photos", "{}")) || {}; } catch {}
+S.voiceId = ls.get("voice_id") || null; S.muted = ls.get("muted") === "true"; $("mute").textContent = S.muted ? "🔇" : "🔊";
+voiceUI(); status(); applyPersona();
+</script>
+</body>
+</html>
