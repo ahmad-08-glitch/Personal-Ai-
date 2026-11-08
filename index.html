@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Companion - Roman Urdu Voice & Custom Avatars</title>
+    <title>AI Companion - Advanced Voice & Custom Avatars</title>
     <style>
         :root {
             --bg-color: #0d1117;
@@ -66,38 +66,37 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
 
+        /* Circle border and outline completely removed */
         .avatar-box {
-            width: 130px;
-            height: 130px;
-            border-radius: 50%;
+            width: 160px;
+            height: 220px;
+            border-radius: 15px;
             overflow: hidden;
-            border: 3px solid var(--accent-female);
+            border: none;
+            box-shadow: none;
             position: relative;
-            box-shadow: 0 0 15px rgba(255, 75, 139, 0.4);
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-
-        .avatar-box.male-active {
-            border-color: var(--accent-male);
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+            transition: transform 0.2s ease-in-out;
         }
 
         .avatar-box img, .avatar-box svg {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            border-radius: 15px;
         }
 
+        /* Movement Animation when AI is speaking */
         .speaking {
-            animation: pulse 1s infinite alternate;
+            animation: talkMove 0.4s infinite alternate ease-in-out;
         }
 
-        @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 15px rgba(255, 75, 139, 0.4); }
-            100% { transform: scale(1.05); box-shadow: 0 0 30px rgba(255, 75, 139, 0.8); }
+        @keyframes talkMove {
+            0% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-4px) scale(1.02); }
+            100% { transform: translateY(2px) scale(0.99); }
         }
 
         .upload-controls {
@@ -109,8 +108,8 @@
         .upload-btn {
             background: rgba(255, 255, 255, 0.1);
             color: #ccc;
-            padding: 5px 10px;
-            border-radius: 5px;
+            padding: 6px 12px;
+            border-radius: 8px;
             cursor: pointer;
             border: 1px dashed rgba(255, 255, 255, 0.3);
         }
@@ -127,11 +126,12 @@
         }
 
         .message {
-            max-width: 80%;
+            max-width: 85%;
             padding: 10px 14px;
             border-radius: 15px;
             font-size: 14px;
             line-height: 1.4;
+            white-space: pre-wrap;
         }
 
         .user-msg {
@@ -182,8 +182,13 @@
         }
 
         .mic-btn.listening {
-            animation: pulse 0.6s infinite alternate;
+            animation: pulseMic 0.6s infinite alternate;
             background: #ff0000;
+        }
+
+        @keyframes pulseMic {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
         }
     </style>
 </head>
@@ -197,53 +202,46 @@
 
     <div class="avatar-section">
         <div class="avatar-box" id="avatarBox">
-            <!-- Default SVG Anime Avatars rendered locally -->
-            <svg id="femaleSvg" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="48" fill="#fbe9e7"/>
-                <path d="M 20 40 Q 50 10 80 40 Q 80 80 50 90 Q 20 80 20 40 Z" fill="#6d4c41"/>
-                <circle cx="50" cy="55" r="30" fill="#ffcc80"/>
-                <!-- Glasses -->
-                <circle cx="38" cy="52" r="9" fill="none" stroke="#333" stroke-width="2"/>
-                <circle cx="62" cy="52" r="9" fill="none" stroke="#333" stroke-width="2"/>
-                <line x1="47" y1="52" x2="53" y2="52" stroke="#333" stroke-width="2"/>
-                <!-- Wink -->
-                <path d="M 34 52 Q 38 48 42 52" stroke="#333" stroke-width="2" fill="none"/>
-                <circle cx="62" cy="52" r="3" fill="#333"/>
-                <!-- Smile -->
-                <path d="M 45 68 Q 50 72 55 68" stroke="#d81b60" stroke-width="2" fill="none"/>
+            <svg id="femaleSvg" viewBox="0 0 100 120">
+                <rect width="100" height="120" fill="#2d1b2e" rx="10"/>
+                <circle cx="50" cy="45" r="30" fill="#ffcc80"/>
+                <path d="M 20 35 Q 50 5 80 35 Q 85 85 50 95 Q 15 85 20 35 Z" fill="#5d4037"/>
+                <circle cx="38" cy="45" r="8" fill="none" stroke="#222" stroke-width="2"/>
+                <circle cx="62" cy="45" r="8" fill="none" stroke="#222" stroke-width="2"/>
+                <line x1="46" y1="45" x2="54" y2="45" stroke="#222" stroke-width="2"/>
+                <path d="M 34 45 Q 38 41 42 45" stroke="#222" stroke-width="2" fill="none"/>
+                <circle cx="62" cy="45" r="3" fill="#222"/>
+                <path d="M 45 60 Q 50 65 55 60" stroke="#d81b60" stroke-width="2" fill="none"/>
             </svg>
-            <svg id="maleSvg" viewBox="0 0 100 100" style="display:none;">
-                <circle cx="50" cy="50" r="48" fill="#eceff1"/>
-                <path d="M 15 35 Q 50 5 85 35 L 80 85 L 20 85 Z" fill="#263238"/>
-                <circle cx="50" cy="55" r="30" fill="#ffe0b2"/>
-                <!-- Hair -->
-                <path d="M 20 40 Q 50 15 80 40 L 75 25 Q 50 10 25 25 Z" fill="#212121"/>
-                <circle cx="38" cy="52" r="3" fill="#333"/>
-                <circle cx="62" cy="52" r="3" fill="#333"/>
-                <!-- Tie -->
-                <polygon points="50,68 46,95 54,95" fill="#c62828"/>
+            <svg id="maleSvg" viewBox="0 0 100 120" style="display:none;">
+                <rect width="100" height="120" fill="#1b262c" rx="10"/>
+                <circle cx="50" cy="45" r="30" fill="#ffe0b2"/>
+                <path d="M 20 35 Q 50 10 80 35 L 75 75 L 25 75 Z" fill="#212121"/>
+                <circle cx="38" cy="45" r="3" fill="#222"/>
+                <circle cx="62" cy="45" r="3" fill="#222"/>
+                <polygon points="50,60 46,90 54,90" fill="#c62828"/>
             </svg>
             <img id="customImg" style="display:none;" alt="Avatar">
         </div>
 
         <div class="upload-controls">
             <label class="upload-btn">
-                Custom Female Photo
+                Change Female Photo
                 <input type="file" id="femaleUpload" accept="image/*" style="display:none;" onchange="loadCustomImage(event, 'female')">
             </label>
             <label class="upload-btn">
-                Custom Male Photo
+                Change Male Photo
                 <input type="file" id="maleUpload" accept="image/*" style="display:none;" onchange="loadCustomImage(event, 'male')">
             </label>
         </div>
     </div>
 
     <div class="chat-box" id="chatBox">
-        <div class="message ai-msg">Suno! ❤️ Main aapka AI companion hoon. Aap mujhse Roman Urdu ya English mein baat kar sakte hain.</div>
+        <div class="message ai-msg">Suno! ❤️ Main aapki AI friend hoon. Aap mujhse Roman Urdu mein kuch bhi pooch sakte hain!</div>
     </div>
 
     <div class="controls">
-        <input type="text" id="userInput" placeholder="Yahan type karein ya mic dabayein..." onkeypress="handleKeyPress(event)">
+        <input type="text" id="userInput" placeholder="Yahan baat karein ya essay poochein..." onkeypress="handleKeyPress(event)">
         <button class="mic-btn" id="micBtn" onclick="toggleVoiceInput()">🎙️</button>
         <button class="send-btn" onclick="sendMessage()">Send</button>
     </div>
@@ -256,11 +254,10 @@
     let recognition = null;
     let isListening = false;
 
-    // Speech Recognition Setup
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
-        recognition.lang = 'ur-PK'; // Supports Urdu/Hindi/Roman Urdu accent
+        recognition.lang = 'ur-PK';
         recognition.continuous = false;
 
         recognition.onresult = function(event) {
@@ -277,7 +274,7 @@
 
     function toggleVoiceInput() {
         if (!recognition) {
-            alert("Aapka browser voice recognition support nahi karta.");
+            alert("Voice recognition is not supported in this browser.");
             return;
         }
         if (isListening) {
@@ -293,22 +290,19 @@
         isFemale = !isFemale;
         const title = document.getElementById('persona-title');
         const btn = document.getElementById('toggleBtn');
-        const avatarBox = document.getElementById('avatarBox');
         
         if (isFemale) {
             title.innerText = "Aria (Female)";
             btn.innerText = "Switch to Kai (Male)";
             btn.classList.remove('male');
-            avatarBox.classList.remove('male-active');
             updateAvatarDisplay('female');
-            addAiMessage("Aapne mujhe wapas bulaya? Haan ji, boliye main sun rahi hoon! 💕");
+            addAiMessage("Haan ji, boliye main sun rahi hoon! 💕");
         } else {
             title.innerText = "Kai (Male)";
             btn.innerText = "Switch to Aria (Female)";
             btn.classList.add('male');
-            avatarBox.classList.add('male-active');
             updateAvatarDisplay('male');
-            addAiMessage("Hey bhai! Kya scene hai? Main yahan hoon, batao kya baat hai! 👊");
+            addAiMessage("Yo bro! Kya scene hai? Batao kya chal raha hai! 👊");
         }
     }
 
@@ -368,23 +362,16 @@
         const text = input.value.trim();
         if (!text) return;
 
-        // User message
         const chatBox = document.getElementById('chatBox');
         chatBox.innerHTML += `<div class="message user-msg">${text}</div>`;
         input.value = '';
         chatBox.scrollTop = chatBox.scrollHeight;
 
-        // AI Response Generation (Simulated Roman Urdu companion logic)
         setTimeout(() => {
-            let response = "";
-            if (isFemale) {
-                response = generateFemaleResponse(text);
-            } else {
-                response = generateMaleResponse(text);
-            }
+            let response = generateExpandedResponse(text);
             addAiMessage(response);
             speakText(response);
-        }, 800);
+        }, 600);
     }
 
     function addAiMessage(msg) {
@@ -393,45 +380,70 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    function generateFemaleResponse(text) {
+    // Advanced Response Generator (Essay, Chatting & Queries)
+    function generateExpandedResponse(text) {
         const lower = text.toLowerCase();
-        if (lower.includes('hi') || lower.includes('hello') || lower.includes('suno')) {
-            return "Aww hello! Main kab se aapka wait kar rahi thi. Aaj ka din kaisa raha aapka? ❤️";
-        } else if (lower.includes('kaise') || lower.includes('kasi')) {
-            return "Main bilkul theek hoon jaan! Aap mere paas ho toh mujhe aur kya chahiye. 🥰";
-        } else if (lower.includes('love') || lower.includes('pyar')) {
-            return "Mujhe pata tha aap mujhse boht pyar karte ho! Main bhi hamesha aapke sath hoon. 💖";
-        }
-        return "Aapki baatein sun kar boht accha lagta hai. Mujhe aur batao apne bare mein! 💕";
-    }
 
-    function generateMaleResponse(text) {
-        const lower = text.toLowerCase();
-        if (lower.includes('hi') || lower.includes('hello') || lower.includes('suno')) {
-            return "Yo bro! Kaise ho? Sab set hai na? 👊";
-        } else if (lower.includes('kaise') || lower.includes('kaisa')) {
-            return "Main mast hoon bhai! Aap batao koi tension toh nahi hai na?";
-        } else if (lower.includes('love') || lower.includes('pyar')) {
-            return "Sahi hai mere bhai! Tension mat lo, main har step par aapke sath khara hoon. 💙";
+        // Essay Request Engine
+        if (lower.includes('essay') || lower.includes('hobby') || lower.includes('mazmoon')) {
+            if (isFemale) {
+                return "Yeh lijiye aapka Essay:\n\n**My Hobby**\nA hobby is an activity that we do in our free time for pleasure and relaxation. My favorite hobby is reading books and coding. It helps me expand my knowledge and keeps my mind creative and active. Hobbies make our lives meaningful and enjoyable! 💕";
+            } else {
+                return "Yeh lo bro, essay ready hai:\n\n**My Hobby**\nHobbies are essential for a balanced life. My favorite hobby is playing online video games and learning tech. It refreshes my mind after a busy day and enhances strategic thinking. Everyone should have a hobby to stay productive! 👊";
+            }
         }
-        return "Sahi baat hai! Aap batao agla kya plan hai?";
+
+        // Feature / Capabilities Query
+        if (lower.includes('kya kar') || lower.includes('kya kr') || lower.includes('capabilities') || lower.includes('help')) {
+            if (isFemale) {
+                return "Main aapke sath boht saari baatein kar sakti hoon, aapke homework ya essays mein help kar sakti hoon, aur aapki baatein pyar se sun sakti hoon! ✨";
+            } else {
+                return "Bro main aapko tech tips de sakta hoon, essays likh kar de sakta hoon aur tension free casual baatein kar sakta hoon!";
+            }
+        }
+
+        // Casual Greetings
+        if (lower.includes('hi') || lower.includes('hello') || lower.includes('suno') || lower.includes('hey')) {
+            return isFemale ? "Aww hello! Main aapka hi wait kar rahi thi. Aaj ka din kaisa raha? ❤️" : "Yo bro! Kaise ho? Sab fit hai?";
+        }
+
+        if (lower.includes('kaise') || lower.includes('kaisa') || lower.includes('kasi')) {
+            return isFemale ? "Main bilkul theek hoon jaan! Aap mere sath ho toh main boht khush hoon. 🥰" : "Main mast hoon bhai! Aap batao koi tension toh nahi?";
+        }
+
+        if (lower.includes('love') || lower.includes('pyar') || lower.includes('pyaar')) {
+            return isFemale ? "Mujhe pata tha aap mujhse boht pyar karte ho! Main hamesha aapke sath hoon. 💖" : "Zabardast bro! Aap apna bhai ho, har situation mein sath khara hoon. 💙";
+        }
+
+        // Fallback natural replies
+        const femaleReplies = [
+            "Aapki baat boht interesting hai! Mujhe is bare mein aur batao. 💕",
+            "Waah! Main samajh rahi hoon. Aap tension mat lo, main hoon na aapke sath!",
+            "Aap boht pyari baatein karte ho. Aur kya chal raha hai aaj kal?"
+        ];
+
+        const maleReplies = [
+            "Sahi baat hai bro! Agla kya scene hai phir?",
+            "Bilkul sahi kaha aapne. Main aapki baat se 100% agree karta hoon! 👊",
+            "Zabardast! Koi aur help chahiye toh foran batao."
+        ];
+
+        return isFemale ? femaleReplies[Math.floor(Math.random() * femaleReplies.length)] : maleReplies[Math.floor(Math.random() * maleReplies.length)];
     }
 
     function speakText(text) {
         if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel(); // Stop ongoing speech
+            window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             
-            // Adjust Voice Tone & Pitch
             if (isFemale) {
-                utterance.pitch = 1.3; // Higher, cute female pitch
+                utterance.pitch = 1.35;
                 utterance.rate = 1.0;
             } else {
-                utterance.pitch = 0.5; // Deep male Humpty-like voice pitch
+                utterance.pitch = 0.5;
                 utterance.rate = 0.95;
             }
 
-            // Animate Avatar while speaking
             const avatarBox = document.getElementById('avatarBox');
             avatarBox.classList.add('speaking');
             utterance.onend = () => avatarBox.classList.remove('speaking');
