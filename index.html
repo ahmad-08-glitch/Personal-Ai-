@@ -59,6 +59,8 @@ textarea::placeholder{color:var(--muted)}
 #mic.on{background:var(--red);animation:d .8s infinite}
 #send{background:linear-gradient(135deg,var(--a),var(--a2));color:#fff}
 #toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9;background:#20142e;border:1px solid var(--line);border-left:3px solid var(--a);padding:10px 16px;border-radius:10px;font-size:13px;display:none;max-width:90vw}
+.x{display:block;margin:6px 0 0 auto;background:none;border:0;color:inherit;opacity:.55;font-size:13px;cursor:pointer;padding:6px 8px}
+.x:hover{opacity:1}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
@@ -71,6 +73,12 @@ textarea::placeholder{color:var(--muted)}
 </header>
 
 <section class="panel" id="panel" hidden>
+  <label class="c" style="flex-direction:column">Gemini API key (saved only on this device)
+    <input type="password" id="gkey" placeholder="AIza…" autocomplete="off" style="width:100%;padding:9px 10px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:9px;color:var(--text);font:inherit;font-size:13px">
+  </label>
+  <label class="c" style="flex-direction:column">ElevenLabs key (only for voice cloning)
+    <input type="password" id="ekey" placeholder="optional" autocomplete="off" style="width:100%;padding:9px 10px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:9px;color:var(--text);font:inherit;font-size:13px">
+  </label>
   <p>Upload a clear 30–60 second voice sample (MP3/WAV/M4A) or record one. Both Aria and Kai can use it. Only use a voice you own or have permission to clone.</p>
   <div class="row">
     <button type="button" class="pill" id="fileBtn">📁 Upload sample</button><input type="file" id="file" accept="audio/*" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
@@ -95,12 +103,13 @@ textarea::placeholder{color:var(--muted)}
 /* ===== CONFIG: paste your keys here once. Nothing to enter in the UI. =====
    For anything public, point PROXY_URL at your own server that holds the keys. */
 const CONFIG = {
-  GEMINI_API_KEY: "AQ.Ab8RN6IxjZfwxpo4j_eRIYXXXRyQg1qmar0hli3zA9P2D-XXcA",          // https://aistudio.google.com/apikey
+  GEMINI_API_KEY: "",          // https://aistudio.google.com/apikey
   GEMINI_MODEL: "gemini-flash-latest",
-  ELEVENLABS_API_KEY: "sk_2a54cfa7d29340801241883cc1a6b92821563ec20d5fe18f",      // https://elevenlabs.io  (needed only for voice cloning)
+  ELEVENLABS_API_KEY: "",      // https://elevenlabs.io  (needed only for voice cloning)
   PROXY_URL: ""                // optional: POST {persona,messages} -> {text}
 };
 
+try { CONFIG.GEMINI_API_KEY = CONFIG.GEMINI_API_KEY || localStorage.getItem("gk") || ""; CONFIG.ELEVENLABS_API_KEY = CONFIG.ELEVENLABS_API_KEY || localStorage.getItem("ek") || ""; } catch {}
 const RULES = `
 HOW YOU ANSWER:
 - ALWAYS answer the person's actual question first, correctly and completely. Affection is the flavour, never a replacement for the answer.
@@ -143,14 +152,17 @@ const SVG = {
 function drawAvatar() { const p = S.photos[S.p]; $("av").innerHTML = p ? `<img src="${p}" alt="">` : SVG[S.p]; }
 
 /* Chat */
-function bubble(role, html) { const d = document.createElement("div"); d.className = "m " + (role === "user" ? "u" : "b"); d.innerHTML = html; $("chat").appendChild(d); $("chat").scrollTop = 1e9; return d; }
-function renderAll() { $("chat").innerHTML = ""; S.hist[S.p].forEach(m => bubble(m.role, m.role === "user" ? esc(m.text).replace(/\n/g, "<br>") : md(m.text))); }
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+function addDel(el) { const x = document.createElement("button"); x.type = "button"; x.className = "x"; x.title = "Delete"; x.textContent = "🗑"; x.onclick = () => delMsg(el); el.appendChild(x); }
+function delMsg(el) { if (S.busy) return toast("Wait for the reply to finish."); const id = el.dataset.id; if (id) { S.hist[S.p] = S.hist[S.p].filter(m => m.id !== id); save(); } el.remove(); }
+function bubble(role, html, id) { const d = document.createElement("div"); d.className = "m " + (role === "user" ? "u" : "b"); d.innerHTML = html; if (id) { d.dataset.id = id; addDel(d); } $("chat").appendChild(d); $("chat").scrollTop = 1e9; return d; }
+function renderAll() { $("chat").innerHTML = ""; S.hist[S.p].forEach(m => { m.id = m.id || newId(); bubble(m.role, m.role === "user" ? esc(m.text).replace(/\n/g, "<br>") : md(m.text), m.id); }); }
 function save() { ls.set("hist_v3", JSON.stringify(S.hist)); }
-function push(role, text) { const h = S.hist[S.p]; h.push({ role, text }); while (h.length > 24) h.shift(); save(); }
+function push(role, text) { const h = S.hist[S.p], id = newId(); h.push({ role, text, id }); while (h.length > 24) h.shift(); save(); return id; }
 
 function status() {
   const ok = CONFIG.GEMINI_API_KEY || CONFIG.PROXY_URL;
-  $("status").textContent = ok ? "" : "⚙️ Open the file and paste your Gemini key into CONFIG.GEMINI_API_KEY";
+  $("status").textContent = ok ? "" : "🎙️ Open the settings button above and paste your Gemini key";
   $("status").style.color = ok ? "" : "var(--red)";
 }
 
@@ -186,17 +198,17 @@ async function gemini(messages, onText, signal) {
 
 async function send() {
   const t = $("inp").value.trim(); if (!t || S.busy) return;
-  stopAudio(); bubble("user", esc(t).replace(/\n/g, "<br>")); push("user", t);
+  stopAudio(); bubble("user", esc(t).replace(/\n/g, "<br>"), push("user", t));
   $("inp").value = ""; resize();
   const b = bubble("ai", '<span class="dots"><span></span><span></span><span></span></span>');
   setBusy(true); S.abort = new AbortController(); let full = "";
   try {
     await gemini(S.hist[S.p].map(m => ({ role: m.role, text: m.text })), c => { full += c; b.innerHTML = md(full); $("chat").scrollTop = 1e9; }, S.abort.signal);
     if (!full.trim()) { full = "Hmm, jawab nahi aaya. Dobara try karein? 💕"; b.innerHTML = md(full); }
-    push("model", full); speak(full);
+    b.dataset.id = push("model", full); addDel(b); speak(full);
   } catch (e) {
-    if (e.name === "AbortError") { b.innerHTML = "<em>Stopped.</em>"; if (full) push("model", full); }
-    else { b.innerHTML = `<span style="color:var(--red)">⚠️ ${esc(e.message)}</span>`; }
+    if (e.name === "AbortError") { b.innerHTML = "<em>Stopped.</em>"; if (full) b.dataset.id = push("model", full); addDel(b); }
+    else { b.innerHTML = `<span style="color:var(--red)">⚠️ ${esc(e.message)}</span>`; addDel(b); }
   } finally { setBusy(false); S.abort = null; }
 }
 function setBusy(v) { S.busy = v; $("send").textContent = v ? "■" : "➤"; $("inp").disabled = v; if (!v) $("inp").focus(); }
@@ -283,6 +295,9 @@ try { const h = JSON.parse(ls.get("hist_v3")); if (h?.female && h?.male) S.hist 
 try { S.photos = JSON.parse(ls.get("photos", "{}")) || {}; } catch {}
 S.voiceId = ls.get("voice_id") || null; S.muted = ls.get("muted") === "true"; $("mute").textContent = S.muted ? "🔇" : "🔊";
 voiceUI(); status(); applyPersona();
+$("gkey").value = CONFIG.GEMINI_API_KEY; $("ekey").value = CONFIG.ELEVENLABS_API_KEY;
+$("gkey").onchange = () => { CONFIG.GEMINI_API_KEY = $("gkey").value.trim(); ls.set("gk", CONFIG.GEMINI_API_KEY); status(); toast("Gemini key saved on this device ✓"); };
+$("ekey").onchange = () => { CONFIG.ELEVENLABS_API_KEY = $("ekey").value.trim(); ls.set("ek", CONFIG.ELEVENLABS_API_KEY); toast("ElevenLabs key saved ✓"); };
 </script>
 </body>
 </html>
