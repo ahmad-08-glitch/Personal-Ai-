@@ -79,6 +79,7 @@ textarea::placeholder{color:var(--muted)}
   <label class="c" style="flex-direction:column">ElevenLabs key (only for voice cloning)
     <input type="password" id="ekey" placeholder="optional" autocomplete="off" style="width:100%;padding:9px 10px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:9px;color:var(--text);font:inherit;font-size:13px">
   </label>
+  <label class="c"><input type="checkbox" id="wakeChk"> 👂 Wake word: say “Hey Aria” (or “Hey Kai”) to talk hands-free. Works while this page is open.</label>
   <p>Upload a clear 30–60 second voice sample (MP3/WAV/M4A) or record one. Both Aria and Kai can use it. Only use a voice you own or have permission to clone.</p>
   <div class="row">
     <button type="button" class="pill" id="fileBtn">📁 Upload sample</button><input type="file" id="file" accept="audio/*" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
@@ -270,8 +271,40 @@ $("photo").onchange = e => {
 
 /* Speech input */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition; let rec = null;
-if (SR) { rec = new SR(); rec.lang = "ur-PK"; rec.onresult = e => { $("inp").value = e.results[0][0].transcript; send(); }; rec.onend = () => $("mic").classList.remove("on"); rec.onerror = e => { $("mic").classList.remove("on"); toast(e.error === "not-allowed" || e.error === "service-not-allowed" ? "Mic is blocked inside this page. Type your message instead." : "Voice input error: " + e.error); }; }
-$("mic").onclick = () => { if (!rec) return toast("Voice input isn't supported in this browser."); stopAudio(); try { rec.start(); $("mic").classList.add("on"); } catch (e) { toast("Couldn't start the mic: " + e.message); } };
+if (SR) { rec = new SR(); rec.lang = "ur-PK"; rec.onresult = e => { $("inp").value = e.results[0][0].transcript; send(); }; rec.onend = () => { $("mic").classList.remove("on"); wakeResume(); }; rec.onerror = e => { $("mic").classList.remove("on"); toast(e.error === "not-allowed" || e.error === "service-not-allowed" ? "Mic is blocked inside this page. Type your message instead." : "Voice input error: " + e.error); }; }
+$("mic").onclick = () => { if (!rec) return toast("Voice input isn't supported in this browser."); stopAudio(); wakePause(); try { rec.start(); $("mic").classList.add("on"); } catch (e) { toast("Couldn't start the mic: " + e.message); wakeResume(); } };
+
+/* Wake word */
+let wr = null, wakeOn = false, cmdMode = false;
+const WAKE = {
+  female: /^(?:hey|hi|hello|oye|ok|okay)?[\s,]*(?:aria|area|arya|ariya|aaria)\b[\s,.!?]*(.*)$/i,
+  male: /^(?:hey|hi|hello|oye|ok|okay)?[\s,]*(?:kai|kay|kye|ky|kaye)\b[\s,.!?]*(.*)$/i
+};
+function wakeStatus() { if (wakeOn) { $("status").style.color = ""; $("status").textContent = "👂 Say “Hey " + (S.p === "male" ? "Kai" : "Aria") + "”…"; } else status(); }
+function wakeStart() { if (!wakeOn || cmdMode || !wr) return; try { wr.start(); } catch {} }
+function wakePause() { cmdMode = true; try { wr && wr.stop(); } catch {} }
+function wakeResume() { cmdMode = false; setTimeout(wakeStart, 500); }
+function wakeSet(v) { wakeOn = !!(v && wr); $("wakeChk").checked = wakeOn; ls.set("wake", String(wakeOn)); cmdMode = false; if (wakeOn) wakeStart(); else { try { wr && wr.stop(); } catch {} } wakeStatus(); }
+if (SR) {
+  wr = new SR(); wr.lang = "en-IN"; wr.continuous = true; wr.interimResults = false;
+  wr.onresult = e => {
+    if (S.busy || cmdMode || $("av").classList.contains("speaking")) return;
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (!e.results[i].isFinal) continue;
+      const m = WAKE[S.p].exec(e.results[i][0].transcript.trim()); if (!m) continue;
+      const rest = (m[1] || "").trim();
+      if (rest) { $("inp").value = rest; send(); }
+      else { toast("Haan, bolo… 👂"); wakePause(); setTimeout(() => { stopAudio(); try { rec.start(); $("mic").classList.add("on"); } catch { wakeResume(); } }, 300); }
+      return;
+    }
+  };
+  wr.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") { wakeSet(false); toast("Mic permission is needed for the wake word."); } };
+  wr.onend = () => { if (wakeOn && !cmdMode) setTimeout(wakeStart, 400); };
+}
+$("wakeChk").onchange = e => {
+  if (!wr) { e.target.checked = false; return toast("Wake word isn't supported in this browser."); }
+  wakeSet(e.target.checked); if (wakeOn) toast("Wake word on. Say “Hey " + (S.p === "male" ? "Kai" : "Aria") + "”.");
+};
 
 window.addEventListener("error", e => toast("Error: " + e.message));
 window.addEventListener("unhandledrejection", e => toast("Error: " + (e.reason?.message || e.reason)));
@@ -284,7 +317,7 @@ function applyPersona() {
   if (!S.hist[S.p].length) { S.hist[S.p].push({ role: "model", text: GREET[S.p] }); save(); }
   renderAll();
 }
-$("switch").onclick = () => { S.abort?.abort(); stopAudio(); S.p = S.p === "female" ? "male" : "female"; applyPersona(); };
+$("switch").onclick = () => { S.abort?.abort(); stopAudio(); S.p = S.p === "female" ? "male" : "female"; applyPersona(); wakeStatus(); };
 $("mute").onclick = () => { S.muted = !S.muted; ls.set("muted", S.muted); $("mute").textContent = S.muted ? "🔇" : "🔊"; if (S.muted) stopAudio(); };
 $("gear").onclick = () => { $("panel").hidden = !$("panel").hidden; };
 $("form").onsubmit = e => { e.preventDefault(); S.busy ? S.abort?.abort() : send(); };
@@ -298,6 +331,7 @@ voiceUI(); status(); applyPersona();
 $("gkey").value = CONFIG.GEMINI_API_KEY; $("ekey").value = CONFIG.ELEVENLABS_API_KEY;
 $("gkey").onchange = () => { CONFIG.GEMINI_API_KEY = $("gkey").value.trim(); ls.set("gk", CONFIG.GEMINI_API_KEY); status(); toast("Gemini key saved on this device ✓"); };
 $("ekey").onchange = () => { CONFIG.ELEVENLABS_API_KEY = $("ekey").value.trim(); ls.set("ek", CONFIG.ELEVENLABS_API_KEY); toast("ElevenLabs key saved ✓"); };
+if (ls.get("wake") === "true") wakeSet(true);
 </script>
 </body>
 </html>
