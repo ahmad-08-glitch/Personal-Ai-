@@ -319,7 +319,7 @@ function getSettings() {
     return {
         apiKey: storage.get('gemini_api_key'),
         proxyUrl: storage.get('gemini_proxy_url'),
-        model: storage.get('gemini_model', 'gemini-1.5-flash'),
+        model: storage.get('gemini_model', 'gemini-3.8-flash'),
         streaming: storage.get('gemini_streaming', 'true') !== 'false',
         muted: storage.get('tts_muted', 'false') === 'true'
     };
