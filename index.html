@@ -69,7 +69,7 @@
             gap: 10px;
         }
 
-        /* Clean rectangular frame without round circle border */
+        /* Transparent background for avatar box */
         .avatar-box {
             width: 150px;
             height: 200px;
@@ -78,7 +78,7 @@
             border: none;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
             position: relative;
-            background: #1a1a1a;
+            background: transparent;
         }
 
         .avatar-box img, .avatar-box svg {
@@ -86,9 +86,9 @@
             height: 100%;
             object-fit: cover;
             border-radius: 15px;
+            background: transparent;
         }
 
-        /* Smooth talking animation when AI speaks */
         .speaking {
             animation: talkMotion 0.4s infinite alternate ease-in-out;
         }
@@ -202,31 +202,22 @@
 
     <div class="avatar-section">
         <div class="avatar-box" id="avatarBox">
-            <!-- Default Exact Anime Girl SVG rendering matching user's reference image -->
+            <!-- Transparent SVG without white background block -->
             <svg id="femaleSvg" viewBox="0 0 100 130">
-                <rect width="100" height="130" fill="#fdfbfb"/>
-                <!-- Cardigan & Shirt -->
                 <path d="M 20 100 Q 50 80 80 100 L 90 130 L 10 130 Z" fill="#b0bec5"/>
                 <path d="M 35 100 Q 50 90 65 100 L 70 130 L 30 130 Z" fill="#fff"/>
-                <!-- Face Base -->
                 <circle cx="50" cy="55" r="32" fill="#ffcc80"/>
-                <!-- Hair (Brown Wavy) -->
                 <path d="M 18 45 Q 50 10 82 45 Q 90 95 50 110 Q 10 95 18 45 Z" fill="#5d4037"/>
                 <path d="M 22 40 Q 50 15 78 40 Q 65 30 50 35 Q 35 30 22 40 Z" fill="#4e342e"/>
-                <!-- Glasses -->
                 <circle cx="38" cy="54" r="9" fill="none" stroke="#2c3e50" stroke-width="2"/>
                 <circle cx="62" cy="54" r="9" fill="none" stroke="#2c3e50" stroke-width="2"/>
                 <line x1="47" y1="54" x2="53" y2="54" stroke="#2c3e50" stroke-width="2"/>
-                <!-- Winking & Left Eye -->
                 <path d="M 34 54 Q 38 49 42 54" stroke="#2c3e50" stroke-width="2" fill="none"/>
                 <circle cx="62" cy="54" r="3" fill="#2c3e50"/>
-                <!-- Chibi Cute Mouth -->
                 <path d="M 47 70 Q 50 74 53 70" stroke="#d81b60" stroke-width="2" fill="none"/>
             </svg>
 
-            <!-- Male Avatar SVG -->
             <svg id="maleSvg" viewBox="0 0 100 130" style="display:none;">
-                <rect width="100" height="130" fill="#1b262c"/>
                 <circle cx="50" cy="55" r="32" fill="#ffe0b2"/>
                 <path d="M 18 45 Q 50 10 82 45 L 75 110 L 25 110 Z" fill="#212121"/>
                 <circle cx="38" cy="54" r="3" fill="#222"/>
@@ -254,7 +245,7 @@
     </div>
 
     <div class="controls">
-        <input type="text" id="userInput" placeholder="Yahan type karein ya essay poochein..." onkeypress="handleKeyPress(event)">
+        <input type="text" id="userInput" placeholder="Type here" onkeypress="handleKeyPress(event)">
         <button class="mic-btn" id="micBtn" onclick="toggleVoiceInput()">🎙️</button>
         <button class="send-btn" onclick="sendMessage()">Send</button>
     </div>
@@ -396,7 +387,6 @@
     function generateExpandedResponse(text) {
         const lower = text.toLowerCase();
 
-        // Essay Request Engine
         if (lower.includes('essay') || lower.includes('hobby') || lower.includes('mazmoon')) {
             if (isFemale) {
                 return "Yeh lijiye aapka Essay:\n\n**My Hobby**\nA hobby is an activity that we do in our free time for pleasure and relaxation. My favorite hobby is reading books and coding. It helps me expand my knowledge and keeps my mind creative and active. Hobbies make our lives meaningful and enjoyable! 💕";
@@ -405,7 +395,6 @@
             }
         }
 
-        // Capabilities Query
         if (lower.includes('kya kar') || lower.includes('kya kr') || lower.includes('help')) {
             if (isFemale) {
                 return "Main aapke sath boht saari baatein kar sakti hoon, essays likh kar de sakti hoon, aur aapki baatein pyar se sun sakti hoon! ✨";
@@ -414,7 +403,6 @@
             }
         }
 
-        // Greetings
         if (lower.includes('hi') || lower.includes('hello') || lower.includes('suno') || lower.includes('hey')) {
             return isFemale ? "Aww hello! Main aapka hi wait kar rahi thi. Aaj ka din kaisa raha? ❤️" : "Yo bro! Kaise ho? Sab fit hai?";
         }
